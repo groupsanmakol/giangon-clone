@@ -1,30 +1,42 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Tool lấy link Youtube Shopee</title>
 
 <style>
+*{
+box-sizing:border-box;
+}
+
 body{
-font-family:Arial;
+font-family:Arial,sans-serif;
 background:#f6f6f6;
-padding:40px;
+padding:40px 16px;
 max-width:800px;
 margin:auto;
 }
 
 .box{
-background:white;
+background:#fff;
 padding:24px;
-border-radius:12px;
-box-shadow:0 4px 20px rgba(0,0,0,.08);
+border-radius:14px;
+box-shadow:0 8px 30px rgba(0,0,0,.08);
+}
+
+h2{
+margin-top:0;
+margin-bottom:20px;
+color:#ee4d2d;
 }
 
 input{
 width:100%;
-padding:12px;
+padding:14px;
 font-size:16px;
+border:1px solid #ddd;
+border-radius:10px;
 margin-bottom:12px;
 }
 
@@ -33,24 +45,51 @@ background:#ee4d2d;
 color:white;
 border:none;
 padding:12px 20px;
-border-radius:8px;
+border-radius:10px;
 cursor:pointer;
 font-size:16px;
+font-weight:600;
+}
+
+button:hover{
+opacity:.95;
 }
 
 .result{
 margin-top:20px;
-word-break:break-all;
+padding:16px;
+background:#fafafa;
+border-radius:10px;
+word-break:break-word;
+}
+
+.success{
+color:#0a7d33;
+}
+
+.error{
+color:#d92d20;
+}
+
+.link-box{
+margin-top:10px;
+padding:12px;
+background:#fff;
+border:1px dashed #ee4d2d;
+border-radius:10px;
 }
 
 a{
 color:#ee4d2d;
+text-decoration:none;
+font-weight:600;
 }
 </style>
 </head>
 <body>
 
 <div class="box">
+
 <h2>Lấy link Youtube Shopee</h2>
 
 <input
@@ -58,60 +97,126 @@ id="inputUrl"
 placeholder="Dán link Shopee vào đây..."
 />
 
-<button onclick="convertLink()">
+<button id="convertBtn" onclick="convertLink()">
 Chuyển đổi
 </button>
 
 <div class="result" id="result"></div>
+
 </div>
 
 <script>
-async function convertLink() {
+async function copyLink(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    alert("Đã copy link");
+  }catch{
+    alert("Không copy được");
+  }
+}
 
-  const input = document.getElementById("inputUrl").value;
-  const result = document.getElementById("result");
+async function convertLink(){
 
-  result.innerHTML = "Đang xử lý...";
+  const input =
+    document
+      .getElementById("inputUrl")
+      .value
+      .trim();
 
-  try {
+  const result =
+    document.getElementById("result");
+
+  const btn =
+    document.getElementById("convertBtn");
+
+  if(!input){
+    result.innerHTML =
+      '<div class="error">Vui lòng dán link Shopee</div>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = "Đang xử lý...";
+  result.innerHTML = "Đang lấy link...";
+
+  try{
 
     const res = await fetch(
       "https://lingering-credit-9d02.onedayofu01.workers.dev/",
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
         },
-        body: JSON.stringify({
-          url: input
+        body:JSON.stringify({
+          url:input
         })
       }
     );
 
     const data = await res.json();
 
-    console.log(data);
+    console.log("API response:", data);
 
-    const youtubeLink = data?.data?.youtube?.shortLink;
+    const youtubeLink =
+      data?.data?.youtube?.shortLink ||
+      data?.data?.youtube?.link ||
+      data?.data?.shortLink ||
+      data?.shortLink;
 
-    if (youtubeLink) {
+    if(youtubeLink){
+
       result.innerHTML = `
-        <p>Link Youtube:</p>
-        <a href="${youtubeLink}" target="_blank">${youtubeLink}</a>
+        <div class="success">
+          Lấy link thành công
+        </div>
 
-        <br><br>
+        <div class="link-box">
+          <a href="${youtubeLink}" target="_blank">
+            ${youtubeLink}
+          </a>
+        </div>
 
-        <button onclick="navigator.clipboard.writeText('${youtubeLink}')">
+        <br>
+
+        <button onclick="copyLink('${youtubeLink}')">
           Copy link
         </button>
+
+        <button
+          onclick="window.open('${youtubeLink}','_blank')"
+          style="margin-left:8px;"
+        >
+          Mở link
+        </button>
       `;
-    } else {
-      result.innerHTML = "Không lấy được link Youtube";
+
+    }else{
+
+      result.innerHTML = `
+        <div class="error">
+          Không lấy được link Youtube
+          <br><br>
+          API chưa trả về youtube.shortLink
+        </div>
+      `;
     }
 
-  } catch (err) {
+  }catch(err){
+
     console.error(err);
-    result.innerHTML = "Lỗi khi gọi API";
+
+    result.innerHTML = `
+      <div class="error">
+        Lỗi khi gọi API
+        <br><br>
+        ${err.message}
+      </div>
+    `;
+
+  }finally{
+    btn.disabled = false;
+    btn.innerText = "Chuyển đổi";
   }
 }
 </script>
