@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tool lấy link Youtube Shopee</title>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+
 <style>
-*{
-box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 body{
 font-family:Arial,sans-serif;
 background:#f6f6f6;
-padding:40px 16px;
 max-width:800px;
 margin:auto;
+padding:40px 16px;
 }
 
 .box{
@@ -23,12 +23,6 @@ background:#fff;
 padding:24px;
 border-radius:14px;
 box-shadow:0 8px 30px rgba(0,0,0,.08);
-}
-
-h2{
-margin-top:0;
-margin-bottom:20px;
-color:#ee4d2d;
 }
 
 input{
@@ -42,17 +36,12 @@ margin-bottom:12px;
 
 button{
 background:#ee4d2d;
-color:white;
+color:#fff;
 border:none;
 padding:12px 20px;
 border-radius:10px;
 cursor:pointer;
 font-size:16px;
-font-weight:600;
-}
-
-button:hover{
-opacity:.95;
 }
 
 .result{
@@ -61,28 +50,6 @@ padding:16px;
 background:#fafafa;
 border-radius:10px;
 word-break:break-word;
-}
-
-.success{
-color:#0a7d33;
-}
-
-.error{
-color:#d92d20;
-}
-
-.link-box{
-margin-top:10px;
-padding:12px;
-background:#fff;
-border:1px dashed #ee4d2d;
-border-radius:10px;
-}
-
-a{
-color:#ee4d2d;
-text-decoration:none;
-font-weight:600;
 }
 </style>
 </head>
@@ -95,31 +62,54 @@ font-weight:600;
 <input
 id="inputUrl"
 placeholder="Dán link Shopee vào đây..."
-/>
+>
 
-<button id="convertBtn" onclick="convertLink()">
+<button onclick="convertLink()" id="convertBtn">
 Chuyển đổi
 </button>
 
-<div class="result" id="result"></div>
+<div id="result" class="result"></div>
 
 </div>
 
 <script>
+function sha256(text){
+  return CryptoJS.SHA256(text)
+    .toString(CryptoJS.enc.Hex);
+}
+
+function buildHeaders(bodyString){
+
+  const timestamp =
+    Date.now().toString();
+
+  const userAgent =
+    navigator.userAgent;
+
+  const deviceId =
+    crypto.randomUUID();
+
+  const contentSha256 =
+    sha256(bodyString);
+
+  return {
+    "Content-Type":"application/json",
+    "x-timestamp": timestamp,
+    "x-user-agent": userAgent,
+    "x-device-id": deviceId,
+    "x-content-sha256": contentSha256
+  };
+}
+
 async function copyLink(text){
-  try{
-    await navigator.clipboard.writeText(text);
-    alert("Đã copy link");
-  }catch{
-    alert("Không copy được");
-  }
+  await navigator.clipboard.writeText(text);
+  alert("Đã copy");
 }
 
 async function convertLink(){
 
   const input =
-    document
-      .getElementById("inputUrl")
+    document.getElementById("inputUrl")
       .value
       .trim();
 
@@ -131,7 +121,7 @@ async function convertLink(){
 
   if(!input){
     result.innerHTML =
-      '<div class="error">Vui lòng dán link Shopee</div>';
+      "Vui lòng nhập link";
     return;
   }
 
@@ -141,82 +131,71 @@ async function convertLink(){
 
   try{
 
+    const payload = {
+      url: input
+    };
+
+    const bodyString =
+      JSON.stringify(payload);
+
+    const headers =
+      buildHeaders(bodyString);
+
     const res = await fetch(
       "https://lingering-credit-9d02.onedayofu01.workers.dev/",
       {
         method:"POST",
-        headers:{
-          "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-          url:input
-        })
+        headers,
+        body: bodyString
       }
     );
 
     const data = await res.json();
 
-    console.log("API response:", data);
+    console.log(data);
 
     const youtubeLink =
       data?.data?.youtube?.shortLink ||
       data?.data?.youtube?.link ||
-      data?.data?.shortLink ||
-      data?.shortLink;
+      data?.data?.shortLink;
 
     if(youtubeLink){
 
       result.innerHTML = `
-        <div class="success">
-          Lấy link thành công
-        </div>
+        <p>Lấy link thành công:</p>
 
-        <div class="link-box">
-          <a href="${youtubeLink}" target="_blank">
-            ${youtubeLink}
-          </a>
-        </div>
+        <a href="${youtubeLink}" target="_blank">
+          ${youtubeLink}
+        </a>
 
-        <br>
+        <br><br>
 
         <button onclick="copyLink('${youtubeLink}')">
           Copy link
-        </button>
-
-        <button
-          onclick="window.open('${youtubeLink}','_blank')"
-          style="margin-left:8px;"
-        >
-          Mở link
         </button>
       `;
 
     }else{
 
-      result.innerHTML = `
-        <div class="error">
-          Không lấy được link Youtube
-          <br><br>
-          API chưa trả về youtube.shortLink
-        </div>
-      `;
+      result.innerHTML =
+        "<pre>" +
+        JSON.stringify(data,null,2) +
+        "</pre>";
+
     }
 
   }catch(err){
 
     console.error(err);
 
-    result.innerHTML = `
-      <div class="error">
-        Lỗi khi gọi API
-        <br><br>
-        ${err.message}
-      </div>
-    `;
+    result.innerHTML =
+      "Lỗi: " + err.message;
 
   }finally{
+
     btn.disabled = false;
     btn.innerText = "Chuyển đổi";
+
   }
 }
 </script>
