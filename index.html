@@ -68,54 +68,51 @@ Chuyển đổi
 <script>
 async function convertLink() {
 
-const input = document.getElementById("inputUrl").value;
-const result = document.getElementById("result");
+  const input = document.getElementById("inputUrl").value;
+  const result = document.getElementById("result");
 
-result.innerHTML = "Đang xử lý...";
+  result.innerHTML = "Đang xử lý...";
 
-try {
+  try {
 
-const res = await fetch(
-"https://lingering-credit-9d02.onedayofu01.workers.dev/",
-{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-url: input
-})
-}
-);
+    const res = await fetch(
+      "https://TEN-WORKER-CUA-BAN.workers.dev",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          url: input
+        })
+      }
+    );
 
-const data = await res.json();
+    const data = await res.json();
 
-console.log(data);
+    console.log(data);
 
-let youtubeLink = "";
+    const youtubeLink = data?.data?.youtube?.shortLink;
 
-if (data?.data?.youtube_url) {
-youtubeLink = data.data.youtube_url;
-}
-else if (data?.youtube_url) {
-youtubeLink = data.youtube_url;
-}
+    if (youtubeLink) {
+      result.innerHTML = `
+        <p>Link Youtube:</p>
+        <a href="${youtubeLink}" target="_blank">${youtubeLink}</a>
 
-if (youtubeLink) {
-result.innerHTML = `
-<p>Link Youtube:</p>
-<a href="${youtubeLink}" target="_blank">${youtubeLink}</a>
-`;
-}
-else {
-result.innerHTML = "Không lấy được link Youtube";
-}
+        <br><br>
 
-}
-catch(err){
-console.error(err);
-result.innerHTML = "Lỗi khi gọi API";
-}
+        <button onclick="navigator.clipboard.writeText('${youtubeLink}')">
+          Copy link
+        </button>
+      `;
+    } else {
+      result.innerHTML = "Không lấy được link Youtube";
+    }
+
+  } catch (err) {
+    console.error(err);
+    result.innerHTML = "Lỗi khi gọi API";
+  }
 }
 </script>
 
